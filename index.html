@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bruno's Quest: Raúl Edition</title>
+    <link href="https://fonts.googleapis.com/css2?family=Righteous&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* --- ESTILOS GENERALES --- */
+        :root {
+            --gold: #ffd700;
+            --purple: #2c003e;
+            --pink: #ff006e;
+            --bg-overlay: rgba(0, 0, 0, 0.9);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden; /* Evitar scroll en el body */
+        }
+
+        /* Layout Principal */
+        #main-layout {
+            display: flex;
+            gap: 20px;
+            max-width: 1800px;
+            width: 95%;
+            height: 90vh;
+        }
+
+        /* Área del Juego */
+        #game-wrapper {
+            flex: 2;
+            background: var(--bg-overlay);
+            border: 3px solid var(--gold);
+            border-radius: 15px;
+            box-shadow: 0 0 25px rgba(255, 215, 0, 0.3);
+            padding: 30px;
+            position: relative;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Leaderboard */
+        #leaderboard-wrapper {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid var(--pink);
+            border-radius: 15px;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Tipografía */
+        h1, h2, h3 {
+            font-family: 'Righteous', cursive;
+            text-transform: uppercase;
+            margin-top: 0;
+        }
+
+        h1 { color: var(--gold); font-size: 4rem; text-align: center; }
+        h2 { color: #fff; font-size: 3.4rem; border-bottom: 1px solid var(--gold); padding-bottom: 10px; }
+        .consequence-title { color: var(--pink); font-size: 1.6rem; }
+        h3 { font-size: 3rem; margin-bottom: 15px; }
+
+        p { font-size: 2.8rem; line-height: 1.5; color: #ddd; }
+
+        /* HUD Puntos */
+        #hud {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-family: 'Righteous', cursive;
+            color: var(--gold);
+        }
+
+        /* Botones */
+        .btn-group { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
+        
+        button {
+            background: linear-gradient(90deg, var(--gold), #ffec8b);
+            border: none;
+            padding: 15px;
+            color: var(--purple);
+            font-weight: 800;
+            font-size: 2.8rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Righteous', cursive;
+            transition: transform 0.1s, filter 0.1s;
+        }
+
+        button:hover { transform: scale(1.02); filter: brightness(1.1); }
+        button:active { transform: scale(0.98); }
+
+        .btn-next {
+            background: var(--pink);
+            color: white;
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        /* Leaderboard Items */
+        .lb-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+        }
+        .lb-item span { font-weight: bold; color: var(--gold); }
+
+        /* Clases de utilidad */
+        .hidden { display: none !important; }
+        .fade-in { animation: fadeIn 0.5s ease; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Media Query para Móvil */
+        @media (max-width: 768px) {
+            #main-layout { flex-direction: column; height: auto; }
+            #game-wrapper { height: 60vh; }
+            #leaderboard-wrapper { height: 20vh; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="main-layout">
+        <div id="game-wrapper">
+            <div id="hud">
+                <span>INTENTO ACTUAL</span>
+                <span style="font-size: 1.2rem;">⭐️ <span id="current-score">0</span></span>
+            </div>
+
+            <div id="start-screen" class="fade-in">
+                <h1>🕺 Operación: Salvar el Funk</h1>
+                <p><strong>SITUACIÓN:</strong> Bruno Mars está encerrado en el baño porque <strong>DaniKum</strong> atascó la puerta. El concierto empieza YA.</p>
+                <p>Raúl, eres el único que se sabe las coreos. Tienes que salir y hacerte pasar por él. Pero recuerda: <strong>Bruno es hetero</strong> y tú... bueno, tú eres Raúl. Intenta no convertir el concierto en una carroza del orgullo (o sí).</p>
+                <button onclick="startGame()">👠 PONERSE LOS TACONES Y SALIR</button>
+            </div>
+
+            <div id="question-screen" class="hidden fade-in">
+                <h2 id="q-title">Título Nivel</h2>
+                <p id="q-desc">Descripción</p>
+                <div id="q-options" class="btn-group">
+                    </div>
+            </div>
+
+            <div id="consequence-screen" class="hidden fade-in">
+                <h2 class="consequence-title" id="c-title">Resultado</h2>
+                <p id="c-desc">Qué ha pasado...</p>
+                <button class="btn-next" onclick="nextLevel()">CONTINUAR ➡️</button>
+            </div>
+
+            <div id="final-screen" class="hidden fade-in">
+                <h1>🏆 VEREDICTO FINAL</h1>
+                <div id="final-result-content"></div>
+                <button class="btn-next" onclick="resetGame()">🔄 JUGAR OTRA VEZ</button>
+            </div>
+        </div>
+
+        <div id="leaderboard-wrapper">
+            <h3 style="color: var(--pink); text-align: center; border-bottom: 2px solid #fff;">📊 RANKING</h3>
+            <div id="lb-list">
+                <p style="text-align: center; font-size: 0.8rem; opacity: 0.7;">Aún no hay intentos...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* --- DATOS DEL JUEGO --- */
+        const questions = [
+            {
+                title: "Nivel 1: El Control de Seguridad",
+                desc: "Julio, el gorila de la entrada, te pide la contraseña cantada. <em>'Stop! Wait a minute...'</em>",
+                options: [
+                    { 
+                        text: "Gritas: 'Fill my cup, put some liquor in it!'", 
+                        points: 10, 
+                        cons: "Correcto. Julio te deja pasar. Aunque te mira las cejas depiladas con sospecha, la letra es la que es." 
+                    },
+                    { 
+                        text: "Dices dramáticamente: 'Take my hand, save your life!'", 
+                        points: -100, 
+                        cons: "¡Eso es de Mariah Carey o algo así! Julio sabe que Bruno no es una diva dramática (bueno, no tanto). Casi te echa." 
+                    },
+                    { 
+                        text: "Le haces un 'twerk' agresivo y le guiñas un ojo.", 
+                        points: 20, 
+                        cons: "Julio se pone nervioso y suda. Le has gustado. Te deja pasar solo para que dejes de rozarte con él. ¡Técnica Raúl efectiva!" 
+                    }
+                ]
+            },
+            {
+                title: "Nivel 2: El Armario",
+                desc: "¡<strong>Dani Tenedores</strong> ha manchado la ropa con salsa barbacoa! Tienes que elegir un outfit de emergencia.",
+                options: [
+                    { 
+                        text: "Look '24K Magic': Gorra, shorts y oros.", 
+                        points: 20, 
+                        cons: "Un clásico. Te queda un poco grande y pareces un niño disfrazado, pero da el pego." 
+                    },
+                    { 
+                        text: "Traje rosa de terciopelo ajustado.", 
+                        points: 5, 
+                        cons: "Te queda tan apretado que no puedes respirar. Bruno lo lleva holgado, tú pareces una morcilla fashion. Pero es icónico." 
+                    },
+                    { 
+                        text: "Camiseta que pone: 'I ❤️ SER HETEROSEXUAL'.", 
+                        points: -50, 
+                        cons: "Raúl, por favor. Nadie, absolutamente NADIE, se cree eso. Ni siquiera llevando la cara de Bruno Mars. El staff se ríe de ti." 
+                    }
+                ]
+            },
+            {
+                title: "Nivel 3: El Nombre Real",
+                desc: "Un abogado te pide firmar el seguro. Necesita el nombre de nacimiento de Bruno. ¡Rápido!",
+                options: [
+                    { 
+                        text: "Bruno Gene Mars", 
+                        points: -20, 
+                        cons: "Falso. El abogado llama a seguridad. Les convences diciendo que estabas de broma." 
+                    },
+                    { 
+                        text: "Peter Gene Hernandez", 
+                        points: 30, 
+                        cons: "¡Correcto! Firmas con elegancia. El abogado te dice: 'Señor Mars, le veo más... 'fabuloso' hoy'." 
+                    },
+                    { 
+                        text: "Raúl 'La Potra' Salvaje", 
+                        points: -10, 
+                        cons: "Casi lo escribes por inercia. Tuviste que tacharlo rápido. Qué poco profesional." 
+                    }
+                ]
+            },
+            {
+                title: "Nivel 4: Amigas al Borde de un Ataque",
+                desc: "En el pasillo ves el caos: <strong>CaCamila</strong> y <strong>Marinada</strong> pelean por una boa, y <strong>Osmosis</strong> intenta hackear las luces.",
+                options: [
+                    { 
+                        text: "Gritas: '¡CHICAS, COMPORTAOS!' con voz de camionero.", 
+                        points: 15, 
+                        cons: "Se asustan tanto por tu voz grave que se quedan quietas. Bien gestionado, macho alfa." 
+                    },
+                    { 
+                        text: "Te unes a la pelea por la boa.", 
+                        points: -10, 
+                        cons: "Llegas tarde al escenario y lleno de plumas. Pareces un pollo caponata." 
+                    },
+                    { 
+                        text: "Les tiras un beso y sigues caminando.", 
+                        points: 25, 
+                        cons: "Prioridades. Una estrella no se mezcla con la plebe. ¡Diva!" 
+                    }
+                ]
+            },
+            {
+                title: "Nivel 5: La Balada Romántica",
+                desc: "Cantas 'Just the Way You Are'. Tienes que dedicarla a alguien del público. Recuerda: Bruno es hetero.",
+                options: [
+                    { 
+                        text: "A esa chica rubia de la primera fila.", 
+                        points: -30, 
+                        cons: "Lo intentas, pero pones cara de asco sin querer cuando le agarras la mano. La chica llora, pero de pena." 
+                    },
+                    { 
+                        text: "A ese oso leñador de 2 metros y barba.", 
+                        points: 40, 
+                        cons: "El público enloquece. Creen que Bruno está saliendo del armario en directo. Twitter explota. ¡Has creado un momento histórico!" 
+                    },
+                    { 
+                        text: "A ti mismo en la pantalla.", 
+                        points: 5, 
+                        cons: "Narcisismo puro. Muy de artista, pero un poco raro besarte el bíceps mientras cantas." 
+                    }
+                ]
+            },
+            {
+                title: "Nivel 6: Problemas de Altura",
+                desc: "El micro está muy bajo (Bruno mide 1.65m). Tú llegas y te queda por el ombligo.",
+                options: [
+                    { 
+                        text: "Dices: '¡Joder, qué tapón es este tío!'", 
+                        points: -50, 
+                        cons: "¡HAS INSULTADO AL REY! El técnico de sonido te corta el audio 5 segundos por falta de respeto." 
+                    },
+                    { 
+                        text: "Te abres de piernas (spagat) para llegar al micro.", 
+                        points: 30, 
+                        cons: "¡Qué elasticidad! El público cree que es parte del show. Tus ingles sufren, pero el show continúa." 
+                    },
+                    { 
+                        text: "Pides una caja para subir el micro.", 
+                        points: -10, 
+                        cons: "Rompes la magia. Ahora todos saben que no eres él." 
+                    }
+                ]
+            },
+            {
+                title: "Nivel 7: Completa la Letra",
+                desc: "Suena 'Gorilla'. Toca la parte sucia: <em>'You and me baby making love like...'</em>",
+                options: [
+                    { 
+                        text: "...Rabbits!", 
+                        points: -10, 
+                        cons: "Aburrido. Eso es muy básico." 
+                    },
+                    { 
+                        text: "...GORILLAS! (y te golpeas el pecho)", 
+                        points: 40, 
+                        cons: "La gente se vuelve loca. Has canalizado tu bestia interior. Quizás demasiado, has asustado a un niño." 
+                    },
+                    { 
+                        text: "...Aitalatonta cayéndose por las escaleras!", 
+                        points: -20, 
+                        cons: "¿Qué? Nadie ha entendido la referencia, solo tus amigos se ríen. El resto del estadio está en silencio." 
+                    }
+                ]
+            },
+            {
+                title: "Nivel 8: Caos con AdriAnos",
+                desc: "<strong>AdriAnos</strong> salta al escenario huyendo de seguridad con una baqueta robada.",
+                options: [
+                    { 
+                        text: "Dices: '¡Dejadle! Es mi nuevo bailarín conceptual.'", 
+                        points: 30, 
+                        cons: "AdriAnos empieza a bailar fatal, pero tú le sigues el rollo. La crítica dirá que fue una performance vanguardista." 
+                    },
+                    { 
+                        text: "Te escondes detrás del piano.", 
+                        points: -20, 
+                        cons: "¡Cobarde! Bruno Mars nunca se esconde." 
+                    },
+                    { 
+                        text: "Le pones la zancadilla.", 
+                        points: 0, 
+                        cons: "AdriAnos cae de boca. La gente se ríe. Es cruel, pero efectivo para despejar el escenario." 
+                    }
+                ]
+            },
+            {
+                title: "Nivel 9: Momento Silk Sonic",
+                desc: "Sale Anderson .Paak para cantar 'Leave the Door Open'. Espera que hagas la segunda voz.",
+                options: [
+                    { 
+                        text: "Falsete perfecto y mirada seductora a Anderson.", 
+                        points: 40, 
+                        cons: "Anderson se incomoda un poco con tu mirada de depredador, pero la armonía vocal ha sido divina." 
+                    },
+                    { 
+                        text: "Le dices: 'Lo siento, soy más de Maluma'.", 
+                        points: -30, 
+                        cons: "Sacrilegio. Te han tirado un tomate desde la grada." 
+                    },
+                    { 
+                        text: "Gritas como un gato pisado.", 
+                        points: -10, 
+                        cons: "Has desafinado tanto que se ha roto una copa en el bar VIP." 
+                    }
+                ]
+            },
+            {
+                title: "Nivel 10: La Deuda",
+                desc: "Cantas 'Billionaire'. Te acuerdas de que le debes 5€ a <strong>Dani Tenedores</strong>.",
+                options: [
+                    { 
+                        text: "Tiras billetes falsos al público.", 
+                        points: 10, 
+                        cons: "Queda bien, pero Dani Tenedores te está haciendo gestos de 'págame' desde el lateral." 
+                    },
+                    { 
+                        text: "Cambias la letra: 'I wanna be a billionaire to pay DaniKum new shoes'.", 
+                        points: 20, 
+                        cons: "DaniKum se emociona. El público no entiende nada, pero les gusta la rima." 
+                    },
+                    { 
+                        text: "Lloras pensando en la pobreza.", 
+                        points: -20, 
+                        cons: "Demasiado real. Has bajado el bajón a todo el estadio." 
+                    }
+                ]
+            },
+            {
+                title: "Nivel 11: Multi-Instrumentista",
+                desc: "Para cerrar, tienes que tocar un solo. ¿Qué instrumento toca Bruno habitualmente?",
+                options: [
+                    { 
+                        text: "El Triángulo.", 
+                        points: -10, 
+                        cons: "Ting... Ting... Ting... Patético." 
+                    },
+                    { 
+                        text: "Guitarra eléctrica (Fender Stratocaster).", 
+                        points: 30, 
+                        cons: "¡SÍ! Te marcas un solo a lo Prince. Eres el puto amo." 
+                    },
+                    { 
+                        text: "La Flauta dulce.", 
+                        points: -20, 
+                        cons: "Empiezas a tocar el himno de la alegría. La gente te tira botellas." 
+                    }
+                ]
+            },
+            {
+                title: "Nivel 12: The Grand Finale",
+                desc: "Fin del show. Cae el confeti. Tienes que hacer la pose final.",
+                options: [
+                    { 
+                        text: "Pose Cool: Mano arriba, cabeza abajo.", 
+                        points: 50, 
+                        cons: "Clásico, elegante, efectivo. Eres Bruno." 
+                    },
+                    { 
+                        text: "Haces el pino puente.", 
+                        points: -50, 
+                        cons: "Se te rompe el pantalón por la entrepierna. Se te ve TODO. Fin del misterio: no eres Bruno." 
+                    },
+                    { 
+                        text: "Gritas: '¡ARRIBA LOS HOMOSEXUALES!' y te tiras al público.", 
+                        points: 100, 
+                        cons: "Has salido del armario por Bruno Mars. Mañana será portada mundial. Pero oye, ¡qué final tan épico!" 
+                    }
+                ]
+            }
+        ];
+
+        /* --- LÓGICA DEL JUEGO --- */
+        let currentLevelIndex = 0;
+        let score = 0;
+        let attemptCount = 0;
+        let attemptsHistory = []; // Guardará { id: 1, score: 100 }
+
+        // Elementos DOM
+        const hudScore = document.getElementById('current-score');
+        const gameWrapper = document.getElementById('game-wrapper');
+        const startScreen = document.getElementById('start-screen');
+        const questionScreen = document.getElementById('question-screen');
+        const consequenceScreen = document.getElementById('consequence-screen');
+        const finalScreen = document.getElementById('final-screen');
+        const lbList = document.getElementById('lb-list');
+
+        function startGame() {
+            score = 0;
+            currentLevelIndex = 0;
+            updateHud();
+            
+            startScreen.classList.add('hidden');
+            finalScreen.classList.add('hidden');
+            loadLevel(0);
+        }
+
+        function loadLevel(index) {
+            if (index >= questions.length) {
+                finishGame();
+                return;
+            }
+
+            const data = questions[index];
+            
+            // Rellenar HTML
+            document.getElementById('q-title').innerHTML = data.title;
+            document.getElementById('q-desc').innerHTML = data.desc;
+            
+            const optsContainer = document.getElementById('q-options');
+            optsContainer.innerHTML = ''; // Limpiar botones anteriores
+
+            data.options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.innerText = opt.text;
+                btn.onclick = () => showConsequence(opt);
+                optsContainer.appendChild(btn);
+            });
+
+            // Mostrar pantalla pregunta
+            consequenceScreen.classList.add('hidden');
+            questionScreen.classList.remove('hidden');
+            
+            // Scroll top
+            gameWrapper.scrollTop = 0;
+        }
+
+        function showConsequence(optionData) {
+            // Actualizar puntos
+            score += optionData.points;
+            updateHud();
+
+            // Rellenar pantalla consecuencia
+            document.getElementById('c-title').innerText = optionData.points >= 0 ? "¡BIEN JUGADO!" : "¡AY RAÚL...";
+            if(optionData.points >= 40) document.getElementById('c-title').innerText = "¡NIVEL DIOS!";
+            if(optionData.points <= -20) document.getElementById('c-title').innerText = "¡DESASTRE!";
+
+            document.getElementById('c-desc').innerHTML = `
+                <strong>${optionData.points > 0 ? '+' : ''}${optionData.points} Puntos</strong><br><br>
+                ${optionData.cons}
+            `;
+
+            // Cambiar pantallas
+            questionScreen.classList.add('hidden');
+            consequenceScreen.classList.remove('hidden');
+            gameWrapper.scrollTop = 0;
+        }
+
+        function nextLevel() {
+            currentLevelIndex++;
+            loadLevel(currentLevelIndex);
+        }
+
+        function finishGame() {
+            consequenceScreen.classList.add('hidden');
+            finalScreen.classList.remove('hidden');
+            gameWrapper.scrollTop = 0;
+
+            // Lógica de Rangos
+            let title, desc;
+            if (score >= 350) {
+                title = "RANGO: HOOLIGAN SUPREMO 👑";
+                desc = "Has superado al maestro. Aunque has vuelto a Bruno un icono gay accidentalmente, el show ha sido perfecto. ¡Matrícula de Honor!";
+            } else if (score >= 200) {
+                title = "RANGO: VERSACE ON THE FLOOR ✨";
+                desc = "Tienes estilo. Has disimulado tu pluma lo justo para que no cancelen el concierto. DaniKum está orgulloso.";
+            } else if (score >= 100) {
+                title = "RANGO: THE LAZY SONG 🐵";
+                desc = "Ni tan mal, ni tan bien. Has tenido momentos muy 'heterobásico' intentando encajar. Necesitas más ensayo.";
+            } else {
+                title = "RANGO: LOCKED OUT OF HEAVEN 🚫";
+                desc = "Fatal. Te han pillado. Saben que eres Raúl. Has deshonrado a AdriAnos, a Marinada y a todo el colectivo.";
+            }
+
+            document.getElementById('final-result-content').innerHTML = `
+                <h2 style="color: var(--pink); font-size: 2rem;">${title}</h2>
+                <p>${desc}</p>
+                <p>Puntuación Final: <strong>${score}</strong></p>
+            `;
+
+            // Actualizar Leaderboard
+            attemptCount++;
+            addToLeaderboard(attemptCount, score);
+        }
+
+        function addToLeaderboard(attempt, finalScore) {
+            if (attempt === 1) lbList.innerHTML = ''; // Limpiar mensaje vacío
+            
+            const div = document.createElement('div');
+            div.className = 'lb-item fade-in';
+            div.innerHTML = `<span>Intento #${attempt}</span> <span>${finalScore} pts</span>`;
+            
+            // Insertar al principio
+            lbList.insertBefore(div, lbList.firstChild);
+        }
+
+        function resetGame() {
+            startGame();
+        }
+
+        function updateHud() {
+            hudScore.innerText = score;
+        }
+
+    </script>
+</body>
+</html>
